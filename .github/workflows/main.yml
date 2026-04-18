@@ -19,50 +19,22 @@ jobs:
         run: |
           brew install ldid dpkg
 
-      - name: Setup Theos
+      - name: Compile dylib
         run: |
-          if [ ! -d "$HOME/theos" ]; then
-            git clone --depth 1 https://github.com/theos/theos.git $HOME/theos
-            cd $HOME/theos
-            git submodule update --init --recursive
-            cd -
-          fi
-          echo "THEOS=$HOME/theos" >> $GITHUB_ENV
+          SDK_PATH=$(xcrun --sdk iphoneos --show-sdk-path)
+          clang -arch arm64 -dynamiclib -o TrollFoolsAdRemover.dylib Tweak.m \
+            -framework Foundation -framework UIKit \
+            -isysroot $SDK_PATH \
+            -fobjc-arc \
+            -miphoneos-version-min=14.0
 
-      - name: Verify source files
-        run: |
-          ls -la
-          test -f Makefile
-          test -f Tweak.x
-          test -f control
-          test -f TrollFoolsAdRemover.plist
-
-      - name: Build dylib
-        env:
-          TARGET: iphone:clang:latest
-          ARCHS: arm64
-        run: |
-          make clean || true
-          make
-
-      - name: Locate compiled dylib
-        id: locate
-        run: |
-          DYLIB_PATH=$(find . -name "*.dylib" -type f | head -n 1)
-          if [ -z "$DYLIB_PATH" ]; then
-            echo "No dylib found!"
-            exit 1
-          fi
-          echo "dylib_path=$DYLIB_PATH" >> $GITHUB_ENV
-          echo "Found dylib at $DYLIB_PATH"
-
-      - name: Package deb manually
+      - name: Package deb
         run: |
           mkdir -p package/DEBIAN
           cp control package/DEBIAN/
           
           mkdir -p package/Library/MobileSubstrate/DynamicLibraries
-          cp "${{ env.dylib_path }}" package/Library/MobileSubstrate/DynamicLibraries/TrollFoolsAdRemover.dylib
+          cp TrollFoolsAdRemover.dylib package/Library/MobileSubstrate/DynamicLibraries/
           cp TrollFoolsAdRemover.plist package/Library/MobileSubstrate/DynamicLibraries/
           
           find package -type d -exec chmod 755 {} \;
