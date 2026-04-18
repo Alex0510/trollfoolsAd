@@ -1,0 +1,9 @@
+Package: com.yourname.trollfoolsadremover
+Name: TrollFools Ad Remover
+Version: 1.0
+Architecture: iphoneos-arm
+Description: Removes advertisements from TrollFools.
+Maintainer: Your Name <your@email.com>
+Author: Your Name
+Section: Tweaks
+Depends: firmware (>= 14.0)
