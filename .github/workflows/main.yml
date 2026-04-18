@@ -24,7 +24,6 @@ jobs:
           if [ ! -d "$HOME/theos" ]; then
             git clone --depth 1 https://github.com/theos/theos.git $HOME/theos
             cd $HOME/theos
-            # 初始化并更新子模块，这是修复 "vendor/include" 错误的关键
             git submodule update --init --recursive
             cd -
           fi
@@ -34,7 +33,7 @@ jobs:
         run: |
           ls -la
           test -f Makefile
-          test -f Tweak.xm
+          test -f Tweak.x
           test -f control
           test -f TrollFoolsAdRemover.plist
 
@@ -59,22 +58,18 @@ jobs:
 
       - name: Package deb manually
         run: |
-          # 创建 DEBIAN 目录
           mkdir -p package/DEBIAN
           cp control package/DEBIAN/
           
-          # 创建动态库目录
           mkdir -p package/Library/MobileSubstrate/DynamicLibraries
           cp "${{ env.dylib_path }}" package/Library/MobileSubstrate/DynamicLibraries/TrollFoolsAdRemover.dylib
           cp TrollFoolsAdRemover.plist package/Library/MobileSubstrate/DynamicLibraries/
           
-          # 设置权限
           find package -type d -exec chmod 755 {} \;
           find package -type f -exec chmod 644 {} \;
           chmod 755 package/DEBIAN
           chmod 755 package/Library/MobileSubstrate/DynamicLibraries/*.dylib
           
-          # 打包
           dpkg-deb -b package TrollFoolsAdRemover.deb
           
           mkdir -p output
