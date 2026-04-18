@@ -4,7 +4,6 @@
 %hook NSUserDefaults
 
 - (BOOL)boolForKey:(NSString *)defaultName {
-    // TrollFools 中广告隐藏开关对应的 UserDefaults key
     if ([defaultName isEqualToString:@"isAdvertisementHiddenV2"]) {
         return YES;   // 强制隐藏广告
     }
