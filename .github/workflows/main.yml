@@ -17,7 +17,11 @@ jobs:
 
       - name: Install build dependencies
         run: |
-          brew install ldid dpkg
+          brew install ldid dpkg perl cpanminus
+
+      - name: Install required Perl module for dm.pl
+        run: |
+          sudo cpanm IO::Compress::Gzip
 
       - name: Setup Theos
         run: |
@@ -25,6 +29,8 @@ jobs:
             git clone --depth 1 https://github.com/theos/theos.git $HOME/theos
           fi
           echo "THEOS=$HOME/theos" >> $GITHUB_ENV
+          # 确保 dm.pl 可执行
+          chmod +x $HOME/theos/bin/dm.pl
 
       - name: Verify source files
         run: |
@@ -38,9 +44,6 @@ jobs:
         env:
           TARGET: iphone:clang:latest
           ARCHS: arm64
-          # 可选：使用 lld 链接器（如果不需要可以注释掉）
-          # LD: /usr/local/bin/ld.lld
-          # LDFLAGS: -fuse-ld=lld
         run: |
           make clean || true
           make package
