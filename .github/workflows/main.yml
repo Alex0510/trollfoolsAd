@@ -17,11 +17,7 @@ jobs:
 
       - name: Install build dependencies
         run: |
-          brew install ldid dpkg perl cpanminus
-
-      - name: Install required Perl module for dm.pl
-        run: |
-          sudo cpanm IO::Compress::Gzip
+          brew install ldid dpkg
 
       - name: Setup Theos
         run: |
@@ -29,8 +25,6 @@ jobs:
             git clone --depth 1 https://github.com/theos/theos.git $HOME/theos
           fi
           echo "THEOS=$HOME/theos" >> $GITHUB_ENV
-          # 确保 dm.pl 可执行
-          chmod +x $HOME/theos/bin/dm.pl
 
       - name: Verify source files
         run: |
@@ -40,15 +34,47 @@ jobs:
           test -f control
           test -f TrollFoolsAdRemover.plist
 
-      - name: Build package
+      - name: Build dylib
         env:
           TARGET: iphone:clang:latest
           ARCHS: arm64
         run: |
           make clean || true
-          make package
+          make
+
+      - name: Locate compiled dylib
+        id: locate
+        run: |
+          DYLIB_PATH=$(find . -name "*.dylib" -type f | head -n 1)
+          if [ -z "$DYLIB_PATH" ]; then
+            echo "No dylib found!"
+            exit 1
+          fi
+          echo "dylib_path=$DYLIB_PATH" >> $GITHUB_OUTPUT
+          echo "Found dylib at $DYLIB_PATH"
+
+      - name: Package deb manually
+        run: |
+          # 创建 DEBIAN 目录
+          mkdir -p package/DEBIAN
+          cp control package/DEBIAN/
+          
+          # 创建动态库目录
+          mkdir -p package/Library/MobileSubstrate/DynamicLibraries
+          cp "${{ steps.locate.outputs.dylib_path }}" package/Library/MobileSubstrate/DynamicLibraries/TrollFoolsAdRemover.dylib
+          cp TrollFoolsAdRemover.plist package/Library/MobileSubstrate/DynamicLibraries/
+          
+          # 设置权限
+          find package -type d -exec chmod 755 {} \;
+          find package -type f -exec chmod 644 {} \;
+          chmod 755 package/DEBIAN
+          chmod 755 package/Library/MobileSubstrate/DynamicLibraries/*.dylib
+          
+          # 打包
+          dpkg-deb -b package TrollFoolsAdRemover.deb
+          
           mkdir -p output
-          find . -name "*.deb" -exec mv {} output/ \;
+          mv TrollFoolsAdRemover.deb output/
 
       - name: Upload deb artifact
         uses: actions/upload-artifact@v4
