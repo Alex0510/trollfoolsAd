@@ -23,6 +23,10 @@ jobs:
         run: |
           if [ ! -d "$HOME/theos" ]; then
             git clone --depth 1 https://github.com/theos/theos.git $HOME/theos
+            cd $HOME/theos
+            # 初始化并更新子模块，这是修复 "vendor/include" 错误的关键
+            git submodule update --init --recursive
+            cd -
           fi
           echo "THEOS=$HOME/theos" >> $GITHUB_ENV
 
@@ -50,7 +54,7 @@ jobs:
             echo "No dylib found!"
             exit 1
           fi
-          echo "dylib_path=$DYLIB_PATH" >> $GITHUB_OUTPUT
+          echo "dylib_path=$DYLIB_PATH" >> $GITHUB_ENV
           echo "Found dylib at $DYLIB_PATH"
 
       - name: Package deb manually
@@ -61,7 +65,7 @@ jobs:
           
           # 创建动态库目录
           mkdir -p package/Library/MobileSubstrate/DynamicLibraries
-          cp "${{ steps.locate.outputs.dylib_path }}" package/Library/MobileSubstrate/DynamicLibraries/TrollFoolsAdRemover.dylib
+          cp "${{ env.dylib_path }}" package/Library/MobileSubstrate/DynamicLibraries/TrollFoolsAdRemover.dylib
           cp TrollFoolsAdRemover.plist package/Library/MobileSubstrate/DynamicLibraries/
           
           # 设置权限
