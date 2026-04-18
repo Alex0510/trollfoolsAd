@@ -10,41 +10,37 @@ on:
 jobs:
   build:
     runs-on: macos-latest
-    # 如果需要 Linux 环境，可以使用 ubuntu-latest，但 Theos 在 macOS 上更稳定
-    # 这里使用 macOS 因为 Xcode SDK 更完整
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Install build dependencies
+        run: |
+          brew install ldid dpkg
+
       - name: Setup Theos
         run: |
-          # 如果 Theos 不存在则克隆
           if [ ! -d "$HOME/theos" ]; then
             git clone --depth 1 https://github.com/theos/theos.git $HOME/theos
           fi
           echo "THEOS=$HOME/theos" >> $GITHUB_ENV
 
-      - name: Install lld (linker)
-        run: |
-          brew install lld
-
-      - name: Verify source files exist
+      - name: Verify source files
         run: |
           ls -la
-          test -f Makefile || (echo "Makefile missing" && exit 1)
-          test -f Tweak.xm || (echo "Tweak.xm missing" && exit 1)
-          test -f control || (echo "control missing" && exit 1)
-          test -f TrollFoolsAdRemover.plist || (echo "TrollFoolsAdRemover.plist missing" && exit 1)
+          test -f Makefile
+          test -f Tweak.xm
+          test -f control
+          test -f TrollFoolsAdRemover.plist
 
       - name: Build package
         env:
           TARGET: iphone:clang:latest
           ARCHS: arm64
-          LD: /usr/local/bin/ld.lld
-          LDFLAGS: -fuse-ld=lld
-          VERSION: 1.0
-          PACKAGE_NAME: TrollFoolsAdRemover
+          # 可选：使用 lld 链接器（如果不需要可以注释掉）
+          # LD: /usr/local/bin/ld.lld
+          # LDFLAGS: -fuse-ld=lld
         run: |
           make clean || true
           make package
